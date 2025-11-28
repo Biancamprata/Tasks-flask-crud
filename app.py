@@ -1,15 +1,80 @@
-from flask import Flask
-
-#__name__ = "__main__" rodar de forma manual
+from flask import Flask, request, jsonify
+from models.task import Task
 app = Flask(__name__)
 
-@app.route("/")
-def hello_world():
-    return "Hello Word!"
+#CRUD - Create, Read, Update, Delete = Criar, Ler, Atualizar, Deletar
+# Tabela: Tarefa
 
-@app.route("/about")
-def about():
-    return "Página sobre"
+tasks = []
+
+task_id_control = 1
+
+
+@app.route('/tasks', methods=['POST'])
+def create_task():
+    # Lógica para criar uma nova tarefa
+    global task_id_control
+    data = request.get_json()
+    print(data)
+    new_task = Task(id=task_id_control, title=data['title'], description=data.get('description', ''))
+    tasks.append(new_task)
+    task_id_control += 1
+    tasks.append(new_task)
+    print(tasks)
+    return jsonify({"message": "Nova tarefa criada com sucesso!"})
+
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+    # Lógica para obter todas as tarefas
+    task_list = []
+    for task in tasks:
+        task_list.append(task.to_dict())
+    output = {
+                 "tasks": task_list,
+                 "total_tasks": len(task_list)
+             }
+    return jsonify(output)
+
+@app.route('/tasks/<int:id>', methods=['GET'])
+def get_task(id):
+    # Lógica para obter uma tarefa específica pelo ID
+    for t in tasks:
+        if t.id == id:
+            return jsonify(t.to_dict())      
+    return jsonify({"message":"Não foi possível encontrar a tarefa"}), 404
+
+@app.route('/tasks/<int:id>', methods=['PUT'])
+def update_task(id):
+    # Lógica para atualizar uma tarefa existente pelo ID
+    task = None
+    for t in tasks:
+        if t.id == id:
+            task = t
+            break
+    if task == None:
+        return jsonify({"message":"Não foi possível encontrar a tarefa"}), 404
+    
+    data = request.get_json()
+    task.title = data['title']
+    task.description = data['description']
+    task.completed = data['completed']
+
+    return jsonify({"message": "Tarefa atualizada com sucesso!"})
+
+@app.route('/tasks/<int:id>', methods=['DELETE'])
+def delete_task(id):
+    # Lógica para deletar uma tarefa existente pelo ID
+    task = None
+    for t in tasks:
+        if t.id == id:
+            task = t
+            break
+
+    if not task:
+        return jsonify({"message":"Não foi possível encontrar a tarefa"}), 404
+    
+    tasks.remove(task)
+    return jsonify({"message": "Tarefa deletada com sucesso!"})
 
 if __name__== "__main__":
     app.run(debug=True)
